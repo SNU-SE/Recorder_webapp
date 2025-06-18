@@ -98,16 +98,15 @@ Google Drive 자동 업로드를 사용하려면 추가 설정이 필요합니�
 
 #### 🛠️ 로컬 개발용 설정
 
-1. `google-config.example.js` 파일을 `google-config.js`로 복사
-2. 실제 API 키 값으로 변경:
+1. `google-drive.js` 파일에서 직접 API 키를 수정:
    ```javascript
-   window.GOOGLE_DRIVE_CONFIG = {
-       CLIENT_ID: '실제_클라이언트_ID',
-       API_KEY: '실제_API_키',
-       // ... 나머지 설정
+   const GOOGLE_DRIVE_CONFIG = {
+       CLIENT_ID: '실제_클라이언트_ID',      // 여기에 실제 Client ID 입력
+       API_KEY: '실제_API_키',              // 여기에 실제 API Key 입력
+       // ... 나머지 설정은 그대로
    };
    ```
-3. `google-config.js`는 자동으로 `.gitignore`에 의해 제외됩니다
+2. 변경사항을 커밋하지 마세요 (보안상 위험)
 
 #### 🔑 API 키 발급 방법
 

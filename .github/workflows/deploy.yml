@@ -35,18 +35,13 @@ jobs:
           GOOGLE_DRIVE_KEY: ${{ secrets.GOOGLE_DRIVE_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
-          # Create config file with environment variables
-          cat > google-config.js << EOF
-          // Google Drive API 설정 (환경변수에서 주입)
-          window.GOOGLE_DRIVE_CONFIG = {
-              CLIENT_ID: '${{ secrets.GOOGLE_CLIENT_ID }}',
-              API_KEY: '${{ secrets.GOOGLE_DRIVE_KEY }}',
-              DISCOVERY_DOC: 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
-              SCOPES: 'https://www.googleapis.com/auth/drive.file',
-              SCHOOL_FOLDER_NAME: '_School',
-              RECORDER_FOLDER_NAME: '9. Recorder WebAPP'
-          };
-          EOF
+          # Replace API keys in google-drive.js file
+          sed -i "s/YOUR_GOOGLE_CLIENT_ID/${{ secrets.GOOGLE_CLIENT_ID }}/g" google-drive.js
+          sed -i "s/YOUR_GOOGLE_API_KEY/${{ secrets.GOOGLE_DRIVE_KEY }}/g" google-drive.js
+          
+          # Verify the replacement
+          echo "API keys have been replaced in google-drive.js"
+          grep -n "CLIENT_ID\|API_KEY" google-drive.js | head -5
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

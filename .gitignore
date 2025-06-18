@@ -1,6 +1,3 @@
-# Google Drive API 설정 파일 (보안상 제외)
-google-config.js
-
 # Node.js
 node_modules/
 npm-debug.log*
