@@ -1,7 +1,7 @@
 // Google Drive API 설정 (GitHub Actions에서 자동 치환되거나 window.GOOGLE_DRIVE_CONFIG 사용)
 const GOOGLE_DRIVE_CONFIG = window.GOOGLE_DRIVE_CONFIG || {
-    CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID', // GitHub Actions에서 자동으로 치환됨
-    API_KEY: 'YOUR_GOOGLE_API_KEY',     // GitHub Actions에서 자동으로 치환됨
+    CLIENT_ID: 'GOOGLE_CLIENT_ID', // GitHub Actions에서 자동으로 치환됨
+    API_KEY: 'GOOGLE_API_KEY',     // GitHub Actions에서 자동으로 치환됨
     DISCOVERY_DOC: 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
     SCOPES: 'https://www.googleapis.com/auth/drive.file',
     SCHOOL_FOLDER_NAME: '_School',
