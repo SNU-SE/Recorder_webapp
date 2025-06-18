@@ -23,6 +23,22 @@
                 <div class="recording-time" id="recordingTime">00:00:00</div>
             </div>
 
+            <!-- Phase 4: 고급 상태 모니터링 -->
+            <div class="status-monitor" id="statusMonitor" style="display: none;">
+                <div class="monitor-item">
+                    <span class="monitor-label">📹 웹캠:</span>
+                    <span class="monitor-value" id="webcamStatus">대기</span>
+                </div>
+                <div class="monitor-item">
+                    <span class="monitor-label">🖥️ 화면:</span>
+                    <span class="monitor-value" id="screenStatus">대기</span>
+                </div>
+                <div class="monitor-item">
+                    <span class="monitor-label">💾 저장:</span>
+                    <span class="monitor-value" id="storageStatus">준비</span>
+                </div>
+            </div>
+
             <div class="preview-section" id="previewSection">
                 <div class="preview-container">
                     <video id="webcamPreview" class="preview-video" autoplay muted playsinline></video>

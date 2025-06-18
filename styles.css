@@ -110,6 +110,63 @@ body {
     color: #2d3748;
 }
 
+/* Phase 4: 고급 상태 모니터링 */
+.status-monitor {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+
+.monitor-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.monitor-item:hover {
+    background: #f7fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.monitor-label {
+    font-size: 0.875rem;
+    color: #4a5568;
+    font-weight: 500;
+}
+
+.monitor-value {
+    font-size: 0.75rem;
+    color: #2d3748;
+    font-weight: 600;
+    padding: 4px 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.monitor-value.active {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.monitor-value.error {
+    background: #fed7d7;
+    color: #c53030;
+}
+
 /* Preview Section */
 .preview-section {
     display: grid;
@@ -265,6 +322,16 @@ body {
     border: 1px solid #9ae6b4;
 }
 
+.notification.info {
+    background: rgba(190, 227, 248, 0.95);
+    border: 1px solid #90cdf4;
+}
+
+.notification.warning {
+    background: rgba(251, 211, 141, 0.95);
+    border: 1px solid #f6ad55;
+}
+
 .notification-content {
     display: flex;
     align-items: center;
@@ -394,6 +461,26 @@ body {
         flex-direction: column;
         gap: 16px;
         text-align: center;
+    }
+    
+    /* Phase 4: 모바일 상태 모니터 */
+    .status-monitor {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 16px;
+    }
+    
+    .monitor-item {
+        padding: 10px;
+    }
+    
+    .monitor-label {
+        font-size: 0.75rem;
+    }
+    
+    .monitor-value {
+        font-size: 0.6875rem;
+        min-width: 50px;
     }
 }
 

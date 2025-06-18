@@ -114,6 +114,7 @@ async function startRecording() {
     try {
         updateUI('preparing');
         console.log('녹화 시작 준비 중...');
+        showInfo('녹화를 시작합니다. 잠시만 기다려주세요...', 3000);
         
         // Check HTTPS requirement
         if (!checkHTTPS()) {
@@ -122,6 +123,9 @@ async function startRecording() {
         
         // Step 1: Get webcam stream
         console.log('웹캠 접근 중...');
+        showInfo('웹캠에 접근하고 있습니다...', 2000);
+        updateStatusMonitor('connecting', 'ready', 'preparing');
+        
         webcamStream = await navigator.mediaDevices.getUserMedia({
             video: { 
                 width: { ideal: 1920 },
@@ -134,9 +138,13 @@ async function startRecording() {
         // Connect webcam to preview
         webcamPreview.srcObject = webcamStream;
         console.log('웹캠 연결 완료');
+        showInfo('웹캠 연결 완료! 이제 화면 공유를 설정합니다...', 2000);
+        updateStatusMonitor('completed', 'connecting', 'preparing');
         
         // Step 2: Get screen share stream (full screen only)
         console.log('전체 화면 녹화 접근 중...');
+        showWarning('화면 공유 권한을 요청합니다. 전체 화면을 선택해주세요.', 4000);
+        
         screenStream = await navigator.mediaDevices.getDisplayMedia({
             video: { 
                 width: { ideal: 1920 },
@@ -159,6 +167,8 @@ async function startRecording() {
         // Connect screen to preview
         screenPreview.srcObject = screenStream;
         console.log('전체 화면 녹화 연결 완료');
+        showSuccess('화면 공유 설정 완료! 녹화를 시작합니다...', 2000);
+        updateStatusMonitor('completed', 'completed', 'recording');
         
         // Step 3: Setup MediaRecorders
         await setupMediaRecorders();
@@ -176,10 +186,12 @@ async function startRecording() {
         isRecording = true;
         
         console.log('녹화 시작됨');
+        showSuccess('✅ 녹화가 성공적으로 시작되었습니다!', 3000);
         
         // Handle stream end events
         screenStream.getVideoTracks()[0].addEventListener('ended', () => {
             console.log('전체 화면 녹화가 중단되었습니다.');
+            showWarning('화면 공유가 중단되어 녹화를 종료합니다.', 3000);
             stopRecording();
         });
         
@@ -197,6 +209,7 @@ async function stopRecording() {
     try {
         updateUI('stopping');
         console.log('녹화 중지 중...');
+        showInfo('녹화를 중지하고 파일을 처리하고 있습니다...', 3000);
         
         // Stop recording
         if (webcamRecorder && webcamRecorder.state === 'recording') {
@@ -251,9 +264,10 @@ async function stopRecording() {
     }
 }
 
-// Update UI based on current state
+// Update UI based on current state (Phase 4: Enhanced)
 function updateUI(state) {
     const statusDot = statusIndicator.querySelector('.status-dot');
+    const statusMonitor = document.getElementById('statusMonitor');
     
     switch (state) {
         case 'ready':
@@ -262,6 +276,8 @@ function updateUI(state) {
             startBtn.disabled = false;
             stopBtn.disabled = true;
             uploadStatus.style.display = 'none';
+            statusMonitor.style.display = 'none';
+            updateStatusMonitor('ready', 'ready', 'ready');
             break;
             
         case 'preparing':
@@ -269,6 +285,8 @@ function updateUI(state) {
             statusDot.className = 'status-dot';
             startBtn.disabled = true;
             stopBtn.disabled = true;
+            statusMonitor.style.display = 'grid';
+            updateStatusMonitor('connecting', 'connecting', 'preparing');
             break;
             
         case 'recording':
@@ -276,6 +294,8 @@ function updateUI(state) {
             statusDot.className = 'status-dot recording';
             startBtn.disabled = true;
             stopBtn.disabled = false;
+            statusMonitor.style.display = 'grid';
+            updateStatusMonitor('active', 'active', 'recording');
             break;
             
         case 'stopping':
@@ -283,6 +303,7 @@ function updateUI(state) {
             statusDot.className = 'status-dot';
             startBtn.disabled = true;
             stopBtn.disabled = true;
+            updateStatusMonitor('stopping', 'stopping', 'processing');
             break;
             
         case 'uploading':
@@ -291,7 +312,60 @@ function updateUI(state) {
             startBtn.disabled = true;
             stopBtn.disabled = true;
             uploadStatus.style.display = 'block';
+            updateStatusMonitor('completed', 'completed', 'uploading');
             break;
+    }
+}
+
+// Phase 4: 상태 모니터 업데이트 함수
+function updateStatusMonitor(webcamState, screenState, storageState) {
+    const webcamStatus = document.getElementById('webcamStatus');
+    const screenStatus = document.getElementById('screenStatus');
+    const storageStatus = document.getElementById('storageStatus');
+    
+    if (!webcamStatus || !screenStatus || !storageStatus) return;
+    
+    // 웹캠 상태 업데이트
+    updateMonitorItem(webcamStatus, webcamState, {
+        'ready': '대기',
+        'connecting': '연결중',
+        'active': '녹화중',
+        'stopping': '중지중',
+        'completed': '완료',
+        'error': '오류'
+    });
+    
+    // 화면 상태 업데이트
+    updateMonitorItem(screenStatus, screenState, {
+        'ready': '대기',
+        'connecting': '연결중',
+        'active': '녹화중',
+        'stopping': '중지중',
+        'completed': '완료',
+        'error': '오류'
+    });
+    
+    // 저장 상태 업데이트
+    updateMonitorItem(storageStatus, storageState, {
+        'ready': '준비',
+        'preparing': '준비중',
+        'recording': '저장중',
+        'processing': '처리중',
+        'uploading': '업로드중',
+        'completed': '완료',
+        'error': '오류'
+    });
+}
+
+// 개별 모니터 아이템 업데이트
+function updateMonitorItem(element, state, stateTexts) {
+    element.textContent = stateTexts[state] || state;
+    element.className = 'monitor-value';
+    
+    if (state === 'active' || state === 'recording' || state === 'uploading') {
+        element.classList.add('active');
+    } else if (state === 'error') {
+        element.classList.add('error');
     }
 }
 
@@ -348,7 +422,7 @@ function showError(message) {
 }
 
 // Show success message
-function showSuccess(message) {
+function showSuccess(message, duration = 5000) {
     const notification = document.createElement('div');
     notification.className = 'notification success';
     notification.innerHTML = `
@@ -368,7 +442,56 @@ function showSuccess(message) {
         if (notification.parentElement) {
             notification.remove();
         }
-    }, 5000);
+    }, duration);
+}
+
+// Show info message
+function showInfo(message, duration = 7000) {
+    const notification = document.createElement('div');
+    notification.className = 'notification info';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#4299e1"/>
+                <path d="M12 16v-4M12 8h.01" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, duration);
+}
+
+// Show warning message
+function showWarning(message, duration = 8000) {
+    const notification = document.createElement('div');
+    notification.className = 'notification warning';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" fill="#ed8936"/>
+                <line x1="12" y1="9" x2="12" y2="13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                <line x1="12" y1="17" x2="12.01" y2="17" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, duration);
 }
 
 // Update upload progress (for Phase 3)
@@ -548,28 +671,43 @@ function getCurrentTimestamp() {
     return `${year}${month}${day}_${hours}${minutes}${seconds}`;
 }
 
-// Enhanced error handling for media access
+// Phase 4: 향상된 미디어 에러 처리
 function handleMediaError(error) {
-    let userMessage = '알 수 없는 오류가 발생했습니다.';
+    console.error('미디어 접근 오류 상세:', error);
+    
+    let userMessage = '⚠️ 알 수 없는 오류가 발생했습니다.';
     
     switch (error.name) {
         case 'NotAllowedError':
-            userMessage = '카메라 또는 화면 녹화 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.';
+            userMessage = '🚫 카메라 또는 화면 녹화 권한이 거부되었습니다.\n💡 브라우저 주소창의 🎥 아이콘을 클릭하여 권한을 허용해주세요.';
             break;
         case 'NotFoundError':
-            userMessage = '카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.';
+            userMessage = '📷 카메라를 찾을 수 없습니다.\n💡 카메라가 연결되어 있고 다른 프로그램에서 사용중이 아닌지 확인해주세요.';
             break;
         case 'NotSupportedError':
-            userMessage = '이 브라우저는 미디어 녹화를 지원하지 않습니다.';
+            userMessage = '❌ 이 브라우저는 미디어 녹화를 지원하지 않습니다.\n💡 Chrome, Firefox, Edge 등의 최신 브라우저를 사용해주세요.';
             break;
         case 'AbortError':
-            userMessage = '미디어 접근이 중단되었습니다.';
+            userMessage = '❌ 화면 공유가 취소되었습니다.\n💡 화면 공유를 허용한 후 다시 시도해주세요.';
             break;
         case 'NotReadableError':
-            userMessage = '카메라가 다른 애플리케이션에서 사용 중입니다.';
+            userMessage = '🔒 카메라가 다른 애플리케이션에서 사용 중입니다.\n💡 다른 프로그램을 종료하고 다시 시도해주세요.';
+            break;
+        case 'OverconstrainedError':
+            userMessage = '⚙️ 요청한 미디어 설정을 지원하지 않습니다.\n💡 다른 해상도나 설정으로 다시 시도해주세요.';
+            break;
+        case 'SecurityError':
+            userMessage = '🔒 보안 정책으로 인해 녹화할 수 없습니다.\n💡 HTTPS 환경에서만 녹화가 가능합니다.';
+            break;
+        case 'TypeError':
+            if (error.message.includes('getDisplayMedia')) {
+                userMessage = '🖥️ 화면 공유 기능을 사용할 수 없습니다.\n💡 최신 브라우저에서 시도하거나 HTTPS 환경인지 확인해주세요.';
+            } else {
+                userMessage = `⚠️ 미디어 접근 오류가 발생했습니다.\n📋 오류 상세: ${error.message}`;
+            }
             break;
         default:
-            userMessage = `미디어 접근 오류: ${error.message}`;
+            userMessage = `⚠️ 미디어 접근 오류가 발생했습니다.\n📋 오류 상세: ${error.message}`;
     }
     
     return userMessage;
@@ -728,21 +866,44 @@ function showUploadSuccess(htmlMessage) {
     }, 10000);
 }
 
-// 업로드 에러 처리
+// 업로드 에러 처리 (Phase 4: 개선된 에러 핸들링)
 function handleUploadError(error) {
-    let errorMessage = 'Google Drive 업로드 중 오류가 발생했습니다.';
+    console.error('❌ Google Drive 업로드 오류:', error);
     
-    if (error.message.includes('로그인')) {
-        errorMessage = 'Google Drive에 로그인해주세요. 브라우저가 팝업을 차단했을 수 있습니다.';
-    } else if (error.message.includes('권한')) {
-        errorMessage = 'Google Drive 접근 권한이 필요합니다. 권한을 허용해주세요.';
-    } else if (error.message.includes('네트워크')) {
-        errorMessage = '네트워크 연결을 확인하고 다시 시도해주세요.';
-    } else if (error.message.includes('용량')) {
-        errorMessage = 'Google Drive 저장 공간이 부족합니다.';
+    let errorMessage = '⚠️ Google Drive 업로드 중 오류가 발생했습니다.';
+    let suggestion = '';
+    
+    if (error.message.includes('401') || error.message.includes('로그인')) {
+        errorMessage = '🔐 Google Drive 인증이 만료되었습니다.';
+        suggestion = '브라우저를 새로고침한 후 다시 시도해주세요.';
+    } else if (error.message.includes('403') || error.message.includes('권한')) {
+        errorMessage = '🚫 Google Drive 접근 권한이 없습니다.';
+        suggestion = '관리자에게 문의하거나 Google Drive 권한을 확인해주세요.';
+    } else if (error.message.includes('quota') || error.message.includes('용량')) {
+        errorMessage = '📊 Google Drive 저장 공간이 부족합니다.';
+        suggestion = 'Google Drive 공간을 확보하거나 다른 계정을 사용해주세요.';
+    } else if (error.message.includes('network') || error.message.includes('네트워크')) {
+        errorMessage = '🌐 네트워크 연결 오류가 발생했습니다.';
+        suggestion = '인터넷 연결을 확인하고 다시 시도해주세요.';
+    } else if (error.message.includes('size') || error.message.includes('크기')) {
+        errorMessage = '📁 파일 크기가 너무 큽니다.';
+        suggestion = '녹화 시간을 줄이거나 화질 설정을 낮춰보세요.';
+    } else if (error.message.includes('timeout')) {
+        errorMessage = '⏱️ 업로드 시간이 초과되었습니다.';
+        suggestion = '네트워크 상태를 확인하고 다시 시도해주세요.';
     }
     
-    showError(errorMessage + ' 파일은 로컬에 다운로드되었습니다.');
+    const fullMessage = suggestion 
+        ? `${errorMessage}<br><small style="opacity: 0.8;">💡 ${suggestion}</small>`
+        : errorMessage;
+    
+    showError(fullMessage + '<br><small>📥 파일은 로컬에 다운로드되었습니다.</small>');
+    
+    // 3초 후 수동 업로드 옵션 안내
+    setTimeout(() => {
+        showInfo('💡 "수동 업로드" 버튼으로 다시 시도할 수 있습니다.', 5000);
+    }, 3000);
+    
     updateUI('ready');
 }
 
