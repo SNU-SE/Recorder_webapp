@@ -40,12 +40,11 @@
 11. "+ 사용자 인증 정보 만들기" > "OAuth 클라이언트 ID"
 12. 애플리케이션 유형: "웹 애플리케이션"
 13. 이름: `Recorder Webapp Client`
-14. 승인된 JavaScript 출처 추가:
+14. 승인된 JavaScript 출처에 **정확히** 다음을 추가:
     ```
-    http://localhost:8000
-    https://localhost:8000
-    https://yourdomain.com (실제 배포 도메인)
+    https://snu-se.github.io
     ```
+    ⚠️ **중요**: 반드시 이 도메인을 정확히 입력해야 합니다!
 15. "만들기" 클릭
 
 ### 5. API 키 생성
@@ -54,28 +53,54 @@
 3. API 제한사항에서 "키 제한" 선택
 4. "Google Drive API" 체크 후 저장
 
-### 6. 코드에 정보 입력
+### 6. GitHub Secrets에 정보 입력
 
-생성된 정보를 `google-drive.js` 파일에 입력합니다:
+생성된 정보를 GitHub 저장소의 Secrets에 안전하게 저장합니다:
 
-```javascript
-const GOOGLE_DRIVE_CONFIG = {
-    CLIENT_ID: '여기에_클라이언트_ID_입력',
-    API_KEY: '여기에_API_키_입력',
-    DISCOVERY_DOC: 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
-    SCOPES: 'https://www.googleapis.com/auth/drive.file',
-    FOLDER_NAME: '화면_웹캠_녹화'
-};
-```
+1. **GitHub 저장소** → **Settings** → **Secrets and variables** → **Actions**
+2. **New repository secret** 클릭하여 다음 2개를 추가:
+
+| Name | Value |
+|------|-------|
+| `GOOGLE_DRIVE_KEY` | 5단계에서 생성한 **API 키** |
+| `GOOGLE_CLIENT_ID` | 4단계에서 생성한 **클라이언트 ID** |
+
+⚠️ **중요**: 
+- API 키와 클라이언트 ID를 정확히 복사해서 붙여넣으세요
+- 앞뒤 공백이 없는지 확인하세요
+- GitHub Actions에서 자동으로 코드에 삽입됩니다
+
+### 7. 배포 확인
+
+GitHub Secrets 설정 후:
+1. 코드를 `main` 브랜치에 푸시
+2. **GitHub Actions**가 자동으로 실행되어 배포
+3. 약 1-2분 후 https://snu-se.github.io/Recorder_webapp/ 에서 확인
 
 ## 🔧 테스트 방법
 
-1. 설정 완료 후 웹 앱 실행
-2. 녹화 시작 및 종료
-3. 브라우저에서 Google 로그인 팝업 허용
-4. Google Drive 접근 권한 허용
-5. 업로드 완료 후 Google Drive에서 "화면_웹캠_녹화" 폴더 확인
+1. **웹 앱 접속**: https://snu-se.github.io/Recorder_webapp/
+2. **F12** 키로 개발자 도구 → **Console** 탭에서 다음 확인:
+   ```
+   ✅ Google Drive 설정 확인 완료
+   CLIENT_ID: 실제_키의_일부...
+   ```
+3. **녹화 테스트**:
+   - 녹화 시작 및 종료
+   - 브라우저에서 Google 로그인 팝업 허용
+   - Google Drive 접근 권한 허용
+4. **업로드 확인**: Google Drive에서 `_School/9. Recorder WebAPP/오늘날짜/` 폴더 확인
+
+## ❗ 문제 해결
+
+### 401 Unauthorized 오류
+- **원인**: 승인된 JavaScript 출처 미설정
+- **해결**: Google Cloud Console에서 `https://snu-se.github.io` 정확히 추가
+
+### API 키가 기본값으로 나타남
+- **원인**: GitHub Secrets 미설정
+- **해결**: Repository secrets에 `GOOGLE_DRIVE_KEY`, `GOOGLE_CLIENT_ID` 추가
 
 ---
 
-이 설정을 완료하면 녹화된 파일이 자동으로 Google Drive에 업로드됩니다! 🎉
+이 설정을 완료하면 녹화된 파일이 자동으로 Google Drive의 날짜별 폴더에 업로드됩니다! 🎉
