@@ -57,6 +57,26 @@
                     <span class="progress-text" id="progressText">Google Drive에 업로드 중...</span>
                 </div>
             </div>
+
+            <div class="settings-section">
+                <h3>Google Drive 설정</h3>
+                <div class="settings-controls">
+                    <div class="setting-item">
+                        <label for="customFolderInput">사용자 정의 폴더명:</label>
+                        <div class="folder-input-group">
+                            <input type="text" id="customFolderInput" placeholder="폴더명 입력 (예: 내 녹화파일)" maxlength="50">
+                            <button id="setFolderBtn" class="btn btn-small">설정</button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <button id="selectFolderBtn" class="btn btn-secondary btn-small">기존 폴더 선택</button>
+                        <button id="resetFolderBtn" class="btn btn-secondary btn-small">기본값으로 재설정</button>
+                    </div>
+                    <div class="current-folder" id="currentFolderDisplay">
+                        현재 폴더: <span id="currentFolderName">화면_웹캠_녹화</span>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <footer class="footer">

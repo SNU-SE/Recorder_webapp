@@ -40,6 +40,9 @@ async function initializeApp() {
         // Add event listeners
         startBtn.addEventListener('click', startRecording);
         stopBtn.addEventListener('click', stopRecording);
+        
+        // Add folder setting event listeners
+        setupFolderSettings();
 
         // Initialize Google Drive API (non-blocking)
         initializeGoogleDriveAsync();
@@ -63,6 +66,11 @@ async function initializeGoogleDriveAsync() {
                 if (typeof initializeGoogleDrive === 'function') {
                     await initializeGoogleDrive();
                     console.log('Google Drive 연동 준비 완료');
+                    
+                    // UI 업데이트
+                    if (typeof updateUIAfterGoogleDriveInit === 'function') {
+                        updateUIAfterGoogleDriveInit();
+                    }
                 }
             } catch (error) {
                 console.warn('Google Drive 초기화 실패 (선택사항):', error.message);
@@ -665,6 +673,103 @@ async function manualUploadToGoogleDrive() {
         console.error('수동 Google Drive 연동 오류:', error);
         showError('Google Drive 연동에 실패했습니다.');
     }
+}
+
+// 폴더 설정 이벤트 리스너 설정
+function setupFolderSettings() {
+    const customFolderInput = document.getElementById('customFolderInput');
+    const setFolderBtn = document.getElementById('setFolderBtn');
+    const selectFolderBtn = document.getElementById('selectFolderBtn');
+    const resetFolderBtn = document.getElementById('resetFolderBtn');
+    const currentFolderName = document.getElementById('currentFolderName');
+
+    // 사용자 정의 폴더명 설정
+    setFolderBtn.addEventListener('click', () => {
+        const folderName = customFolderInput.value.trim();
+        if (!folderName) {
+            showError('폴더명을 입력해주세요.');
+            return;
+        }
+        
+        if (typeof setCustomFolderName === 'function') {
+            setCustomFolderName(folderName);
+            currentFolderName.textContent = folderName;
+            customFolderInput.value = '';
+            showSuccess(`폴더명이 설정되었습니다: ${folderName}`);
+        } else {
+            showError('Google Drive API가 로드되지 않았습니다.');
+        }
+    });
+
+    // 엔터키로 폴더명 설정
+    customFolderInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            setFolderBtn.click();
+        }
+    });
+
+    // 기존 폴더 선택
+    selectFolderBtn.addEventListener('click', async () => {
+        try {
+            if (typeof selectExistingFolder === 'function') {
+                const folderId = await selectExistingFolder();
+                if (folderId) {
+                    // 선택된 폴더 이름 업데이트 (실제 폴더 정보 가져오기)
+                    updateCurrentFolderDisplay();
+                }
+            } else {
+                showError('Google Drive API가 로드되지 않았습니다.');
+            }
+        } catch (error) {
+            console.error('폴더 선택 오류:', error);
+            showError('폴더 선택 중 오류가 발생했습니다.');
+        }
+    });
+
+    // 기본값으로 재설정
+    resetFolderBtn.addEventListener('click', () => {
+        if (typeof resetToDefaultFolder === 'function') {
+            resetToDefaultFolder();
+            currentFolderName.textContent = '화면_웹캠_녹화';
+            showSuccess('기본 폴더로 재설정되었습니다.');
+        } else {
+            showError('Google Drive API가 로드되지 않았습니다.');
+        }
+    });
+
+    // 초기 폴더 표시 업데이트
+    updateCurrentFolderDisplay();
+}
+
+// 현재 폴더 표시 업데이트
+function updateCurrentFolderDisplay() {
+    const currentFolderName = document.getElementById('currentFolderName');
+    
+    // Google Drive API가 로드된 후 호출하거나 로컬 설정에서 가져오기
+    setTimeout(() => {
+        try {
+            if (typeof getCurrentFolderName === 'function') {
+                const folderName = getCurrentFolderName();
+                currentFolderName.textContent = folderName;
+            } else {
+                // 로컬 스토리지에서 직접 확인
+                const saved = localStorage.getItem('recorder_settings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    if (settings.useCustomFolder && settings.customFolderName) {
+                        currentFolderName.textContent = settings.customFolderName;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('폴더 표시 업데이트 실패:', error);
+        }
+    }, 100);
+}
+
+// Google Drive API 로드 후 UI 업데이트
+function updateUIAfterGoogleDriveInit() {
+    updateCurrentFolderDisplay();
 }
 
 console.log('Script loaded successfully'); 
