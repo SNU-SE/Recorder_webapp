@@ -41,6 +41,11 @@ async function initializeApp() {
         startBtn.addEventListener('click', startRecording);
         stopBtn.addEventListener('click', stopRecording);
 
+        // Google Drive 설정 확인 (초기에)
+        setTimeout(() => {
+            checkGoogleDriveConfig();
+        }, 500);
+
         // Initialize Google Drive API (non-blocking)
         initializeGoogleDriveAsync();
 
@@ -57,24 +62,50 @@ async function initializeApp() {
 // Google Drive 비동기 초기화 (에러가 발생해도 앱 실행에 영향 없음)
 async function initializeGoogleDriveAsync() {
     try {
-        // Google Drive API가 로드될 때까지 잠시 대기
-        setTimeout(async () => {
-            try {
-                if (typeof initializeGoogleDrive === 'function') {
-                    await initializeGoogleDrive();
-                    console.log('Google Drive 연동 준비 완료');
+        console.log('Google Drive API 초기화 시작...');
+        
+        // Google Drive API가 로드될 때까지 대기
+        let attempts = 0;
+        const maxAttempts = 5;
+        
+        const waitForAPI = () => {
+            return new Promise((resolve, reject) => {
+                const checkAPI = () => {
+                    attempts++;
+                    console.log(`Google Drive API 로드 확인 시도 ${attempts}/${maxAttempts}`);
                     
-                    // UI 업데이트
-                    if (typeof updateUIAfterGoogleDriveInit === 'function') {
-                        updateUIAfterGoogleDriveInit();
+                    if (typeof initializeGoogleDrive === 'function') {
+                        console.log('Google Drive API 함수 발견!');
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error('Google Drive API 로드 시간 초과'));
+                    } else {
+                        setTimeout(checkAPI, 1000);
                     }
-                }
-            } catch (error) {
-                console.warn('Google Drive 초기화 실패 (선택사항):', error.message);
-            }
-        }, 1000);
+                };
+                checkAPI();
+            });
+        };
+        
+        await waitForAPI();
+        
+        // Google Drive 초기화 실행
+        await initializeGoogleDrive();
+        console.log('✅ Google Drive 연동 준비 완료');
+        
+        // UI 업데이트
+        if (typeof updateUIAfterGoogleDriveInit === 'function') {
+            updateUIAfterGoogleDriveInit();
+        }
+        
     } catch (error) {
-        console.warn('Google Drive 연동을 사용할 수 없습니다:', error.message);
+        console.warn('⚠️ Google Drive 초기화 실패:', error.message);
+        
+        // API 키 관련 오류인지 확인
+        if (error.message.includes('YOUR_GOOGLE') || error.message.includes('API')) {
+            console.error('🔑 Google Drive API 키가 설정되지 않았습니다.');
+            showError('Google Drive API 키가 설정되지 않았습니다. 관리자에게 문의하세요.');
+        }
     }
 }
 
@@ -549,10 +580,35 @@ function handleMediaError(error) {
 // Google Drive 업로드 처리
 async function uploadFilesToGoogleDrive() {
     try {
+        console.log('=== Google Drive 업로드 시작 ===');
+        
         // Google Drive API 사용 가능 여부 확인
+        console.log('uploadMultipleFiles 함수 체크:', typeof uploadMultipleFiles);
+        console.log('isGoogleApiLoaded 상태:', typeof isGoogleApiLoaded !== 'undefined' ? isGoogleApiLoaded : 'undefined');
+        console.log('isSignedIn 상태:', typeof isSignedIn !== 'undefined' ? isSignedIn : 'undefined');
+        
         if (typeof uploadMultipleFiles !== 'function') {
-            console.log('Google Drive API를 사용할 수 없습니다. 로컬 다운로드만 진행됩니다.');
+            console.warn('Google Drive API가 로드되지 않았습니다. 로컬 다운로드만 진행됩니다.');
+            showError('Google Drive API가 로드되지 않았습니다. API 키 설정을 확인해주세요.');
             return;
+        }
+        
+        // Google Drive API 초기화 여부 확인
+        if (typeof isGoogleApiLoaded !== 'undefined' && !isGoogleApiLoaded) {
+            console.warn('Google Drive API가 초기화되지 않았습니다.');
+            showError('Google Drive API가 초기화되지 않았습니다. 잠시 후 다시 시도해주세요.');
+            return;
+        }
+        
+        // 로그인 상태 확인 및 로그인 시도
+        if (typeof isSignedIn !== 'undefined' && !isSignedIn) {
+            console.log('Google Drive 로그인 시도 중...');
+            if (typeof signInToGoogleDrive === 'function') {
+                await signInToGoogleDrive();
+                console.log('Google Drive 로그인 완료');
+            } else {
+                throw new Error('Google Drive 로그인 함수를 찾을 수 없습니다.');
+            }
         }
 
         // 업로드할 파일 준비
@@ -672,9 +728,40 @@ async function manualUploadToGoogleDrive() {
     }
 }
 
+// Google Drive API 설정 확인
+function checkGoogleDriveConfig() {
+    console.log('=== Google Drive 설정 확인 ===');
+    
+    if (typeof GOOGLE_DRIVE_CONFIG !== 'undefined') {
+        console.log('GOOGLE_DRIVE_CONFIG 존재:', true);
+        console.log('CLIENT_ID:', GOOGLE_DRIVE_CONFIG.CLIENT_ID?.substring(0, 20) + '...');
+        console.log('API_KEY:', GOOGLE_DRIVE_CONFIG.API_KEY?.substring(0, 10) + '...');
+        
+        // API 키가 기본값인지 확인
+        if (GOOGLE_DRIVE_CONFIG.CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
+            console.error('❌ CLIENT_ID가 기본값입니다. GitHub Secrets 설정을 확인하세요.');
+            return false;
+        }
+        
+        if (GOOGLE_DRIVE_CONFIG.API_KEY === 'YOUR_GOOGLE_API_KEY') {
+            console.error('❌ API_KEY가 기본값입니다. GitHub Secrets 설정을 확인하세요.');
+            return false;
+        }
+        
+        console.log('✅ Google Drive 설정 확인 완료');
+        return true;
+    } else {
+        console.error('❌ GOOGLE_DRIVE_CONFIG를 찾을 수 없습니다.');
+        return false;
+    }
+}
+
 // Google Drive API 로드 후 UI 업데이트 (저장 경로 정보 표시)
 function updateUIAfterGoogleDriveInit() {
     console.log('Google Drive 연동 준비 완료 - 고정 폴더 구조 사용');
+    
+    // 설정 확인
+    checkGoogleDriveConfig();
 }
 
 console.log('Script loaded successfully'); 
