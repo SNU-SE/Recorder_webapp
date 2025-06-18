@@ -4,14 +4,15 @@ const GOOGLE_DRIVE_CONFIG = {
     API_KEY: 'YOUR_GOOGLE_API_KEY',     // Google Cloud Console에서 발급받은 API 키
     DISCOVERY_DOC: 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
     SCOPES: 'https://www.googleapis.com/auth/drive.file',
-    DEFAULT_FOLDER_NAME: '화면_웹캠_녹화' // 기본 폴더명
+    SCHOOL_FOLDER_NAME: '_School',
+    RECORDER_FOLDER_NAME: '9. Recorder WebAPP'
 };
 
-// 사용자 설정 저장소
-let userSettings = {
-    customFolderName: null,
-    useCustomFolder: false,
-    selectedFolderId: null
+// 폴더 ID 캐시
+let folderIds = {
+    schoolFolderId: null,
+    recorderFolderId: null,
+    todayFolderId: null
 };
 
 // Google Drive API 상태
@@ -24,9 +25,6 @@ let uploadFolderId = null;
 async function initializeGoogleDrive() {
     try {
         console.log('Google Drive API 초기화 중...');
-        
-        // 사용자 설정 로드
-        loadUserSettings();
         
         // Google API 스크립트 로드
         await loadGoogleApiScript();
@@ -122,203 +120,91 @@ async function signInToGoogleDrive() {
     }
 }
 
-// 업로드 폴더 확인/생성
+// 고정된 폴더 구조 생성: _School/9. Recorder WebAPP/오늘날짜/
 async function ensureUploadFolder() {
     try {
-        console.log('업로드 폴더 확인 중...');
+        console.log('업로드 폴더 구조 생성 중...');
         
-        // 사용할 폴더명 결정
-        const folderName = getCurrentFolderName();
+        // 1단계: _School 폴더 확인/생성
+        folderIds.schoolFolderId = await findOrCreateFolder(GOOGLE_DRIVE_CONFIG.SCHOOL_FOLDER_NAME, null);
+        console.log(`_School 폴더: ${folderIds.schoolFolderId}`);
         
-        // 사용자가 특정 폴더를 선택했다면 그것을 사용
-        if (userSettings.selectedFolderId) {
-            uploadFolderId = userSettings.selectedFolderId;
-            console.log(`선택된 폴더 사용: ${uploadFolderId}`);
-            return uploadFolderId;
-        }
+        // 2단계: 9. Recorder WebAPP 폴더 확인/생성
+        folderIds.recorderFolderId = await findOrCreateFolder(GOOGLE_DRIVE_CONFIG.RECORDER_FOLDER_NAME, folderIds.schoolFolderId);
+        console.log(`Recorder WebAPP 폴더: ${folderIds.recorderFolderId}`);
         
-        // 기존 폴더 검색
-        const response = await gapi.client.drive.files.list({
-            q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-            fields: 'files(id, name)'
-        });
+        // 3단계: 오늘 날짜 폴더 확인/생성
+        const todayFolder = getTodayFolderName();
+        folderIds.todayFolderId = await findOrCreateFolder(todayFolder, folderIds.recorderFolderId);
+        console.log(`오늘 날짜 폴더 (${todayFolder}): ${folderIds.todayFolderId}`);
         
-        if (response.result.files.length > 0) {
-            uploadFolderId = response.result.files[0].id;
-            console.log(`기존 폴더 사용: ${folderName} (${uploadFolderId})`);
-        } else {
-            // 새 폴더 생성
-            const folderResponse = await gapi.client.drive.files.create({
-                resource: {
-                    name: folderName,
-                    mimeType: 'application/vnd.google-apps.folder'
-                },
-                fields: 'id'
-            });
-            
-            uploadFolderId = folderResponse.result.id;
-            console.log(`새 폴더 생성: ${folderName} (${uploadFolderId})`);
-        }
-        
+        uploadFolderId = folderIds.todayFolderId;
         return uploadFolderId;
         
     } catch (error) {
-        console.error('폴더 생성/확인 오류:', error);
+        console.error('폴더 구조 생성 오류:', error);
         throw error;
     }
 }
 
-// 현재 사용할 폴더명 가져오기
-function getCurrentFolderName() {
-    if (userSettings.useCustomFolder && userSettings.customFolderName) {
-        return userSettings.customFolderName;
-    }
-    return GOOGLE_DRIVE_CONFIG.DEFAULT_FOLDER_NAME;
-}
-
-// 사용자 정의 폴더명 설정
-function setCustomFolderName(folderName) {
-    userSettings.customFolderName = folderName;
-    userSettings.useCustomFolder = true;
-    uploadFolderId = null; // 다음 업로드 시 새 폴더 사용
-    
-    // 로컬 스토리지에 저장
+// 폴더 찾기 또는 생성
+async function findOrCreateFolder(folderName, parentFolderId = null) {
     try {
-        localStorage.setItem('recorder_settings', JSON.stringify(userSettings));
-        console.log(`사용자 정의 폴더명 설정: ${folderName}`);
-    } catch (error) {
-        console.warn('설정 저장 실패:', error);
-    }
-}
-
-// 기본 폴더명으로 되돌리기
-function resetToDefaultFolder() {
-    userSettings.useCustomFolder = false;
-    userSettings.customFolderName = null;
-    userSettings.selectedFolderId = null;
-    uploadFolderId = null;
-    
-    try {
-        localStorage.setItem('recorder_settings', JSON.stringify(userSettings));
-        console.log('기본 폴더명으로 재설정');
-    } catch (error) {
-        console.warn('설정 저장 실패:', error);
-    }
-}
-
-// 기존 Google Drive 폴더 선택
-async function selectExistingFolder() {
-    try {
-        if (!isSignedIn) {
-            await signInToGoogleDrive();
+        // 부모 폴더 조건 설정
+        let query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+        if (parentFolderId) {
+            query += ` and '${parentFolderId}' in parents`;
+        } else {
+            query += ` and 'root' in parents`;
         }
         
-        // 사용자의 폴더 목록 가져오기
+        // 기존 폴더 검색
         const response = await gapi.client.drive.files.list({
-            q: "mimeType='application/vnd.google-apps.folder' and trashed=false",
-            fields: 'files(id, name, parents)',
-            orderBy: 'name'
+            q: query,
+            fields: 'files(id, name)'
         });
         
-        const folders = response.result.files;
-        
-        if (folders.length === 0) {
-            showError('Google Drive에 폴더가 없습니다.');
-            return null;
+        if (response.result.files.length > 0) {
+            return response.result.files[0].id;
         }
         
-        // 폴더 선택 UI 생성
-        const folderId = await showFolderSelectionDialog(folders);
+        // 폴더가 없으면 새로 생성
+        const folderResource = {
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder'
+        };
         
-        if (folderId) {
-            userSettings.selectedFolderId = folderId;
-            uploadFolderId = folderId;
-            
-            try {
-                localStorage.setItem('recorder_settings', JSON.stringify(userSettings));
-            } catch (error) {
-                console.warn('설정 저장 실패:', error);
-            }
-            
-            const selectedFolder = folders.find(f => f.id === folderId);
-            showSuccess(`폴더가 선택되었습니다: ${selectedFolder.name}`);
-            return folderId;
+        if (parentFolderId) {
+            folderResource.parents = [parentFolderId];
         }
         
-        return null;
+        const createResponse = await gapi.client.drive.files.create({
+            resource: folderResource,
+            fields: 'id'
+        });
+        
+        console.log(`새 폴더 생성: ${folderName}`);
+        return createResponse.result.id;
         
     } catch (error) {
-        console.error('폴더 선택 오류:', error);
-        showError('폴더 선택 중 오류가 발생했습니다.');
-        return null;
+        console.error(`폴더 생성/확인 오류 (${folderName}):`, error);
+        throw error;
     }
 }
 
-// 폴더 선택 다이얼로그 표시
-function showFolderSelectionDialog(folders) {
-    return new Promise((resolve) => {
-        const dialog = document.createElement('div');
-        dialog.className = 'folder-selection-dialog';
-        dialog.innerHTML = `
-            <div class="dialog-backdrop">
-                <div class="dialog-content">
-                    <h3>Google Drive 폴더 선택</h3>
-                    <div class="folder-list">
-                        ${folders.map(folder => `
-                            <div class="folder-item" data-folder-id="${folder.id}">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z" fill="#4285f4"/>
-                                </svg>
-                                <span>${folder.name}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="dialog-buttons">
-                        <button class="btn btn-secondary" id="cancelFolder">취소</button>
-                        <button class="btn btn-primary" id="selectFolder" disabled>선택</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(dialog);
-        
-        let selectedFolderId = null;
-        
-        // 폴더 선택 이벤트
-        dialog.querySelectorAll('.folder-item').forEach(item => {
-            item.addEventListener('click', () => {
-                dialog.querySelectorAll('.folder-item').forEach(i => i.classList.remove('selected'));
-                item.classList.add('selected');
-                selectedFolderId = item.dataset.folderId;
-                document.getElementById('selectFolder').disabled = false;
-            });
-        });
-        
-        // 버튼 이벤트
-        document.getElementById('cancelFolder').addEventListener('click', () => {
-            document.body.removeChild(dialog);
-            resolve(null);
-        });
-        
-        document.getElementById('selectFolder').addEventListener('click', () => {
-            document.body.removeChild(dialog);
-            resolve(selectedFolderId);
-        });
-    });
+// 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+function getTodayFolderName() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
-// 설정 로드
-function loadUserSettings() {
-    try {
-        const saved = localStorage.getItem('recorder_settings');
-        if (saved) {
-            userSettings = { ...userSettings, ...JSON.parse(saved) };
-            console.log('사용자 설정 로드됨:', userSettings);
-        }
-    } catch (error) {
-        console.warn('설정 로드 실패:', error);
-    }
+// 현재 저장 경로 정보 반환
+function getCurrentSavePath() {
+    const today = getTodayFolderName();
+    return `_School/9. Recorder WebAPP/${today}/`;
 }
 
 // Google Drive에 파일 업로드
