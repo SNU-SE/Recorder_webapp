@@ -1,3 +1,6 @@
+# 로컬 테스트용 Google Drive 설정 파일 (보안상 제외)
+google-config-local.js
+
 # Node.js
 node_modules/
 npm-debug.log*
