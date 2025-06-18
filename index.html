@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>화면 & 웹캠 녹화기</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">화면 & 웹캠 녹화기</h1>
+            <p class="subtitle">웹캠과 화면을 동시에 녹화하고 Google Drive에 자동 업로드</p>
+        </header>
+
+        <main class="main">
+            <div class="recording-status" id="recordingStatus">
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot"></div>
+                    <span id="statusText">대기 중</span>
+                </div>
+                <div class="recording-time" id="recordingTime">00:00:00</div>
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <div class="preview-container">
+                    <video id="webcamPreview" class="preview-video" autoplay muted playsinline></video>
+                    <span class="preview-label">웹캠 미리보기</span>
+                </div>
+                <div class="preview-container">
+                    <video id="screenPreview" class="preview-video" autoplay muted playsinline></video>
+                    <span class="preview-label">화면 미리보기</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="startBtn" class="btn btn-primary">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" fill="currentColor"/>
+                    </svg>
+                    시작하기
+                </button>
+                <button id="stopBtn" class="btn btn-secondary" disabled>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="6" y="6" width="12" height="12" fill="currentColor"/>
+                    </svg>
+                    종료하기
+                </button>
+            </div>
+
+            <div class="upload-status" id="uploadStatus" style="display: none;">
+                <div class="upload-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span class="progress-text" id="progressText">Google Drive에 업로드 중...</span>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>© 2024 화면 & 웹캠 녹화기. 모든 권리 보유.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
