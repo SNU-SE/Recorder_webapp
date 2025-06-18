@@ -1,0 +1,11 @@
+# Google Cloud 설정
+GOOGLE_CLOUD_PROJECT_ID=your-project-id
+GOOGLE_CLOUD_KEY_FILE=./keys/service-account-key.json
+GOOGLE_CLOUD_STORAGE_BUCKET=your-bucket-name
+
+# 서버 설정
+PORT=3001
+NODE_ENV=development
+
+# CORS 설정 (프로덕션에서는 특정 도메인으로 제한)
+CORS_ORIGIN=* 

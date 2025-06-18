@@ -958,4 +958,239 @@ function updateUIAfterGoogleDriveInit() {
     checkGoogleDriveConfig();
 }
 
+// Phase 5: 드래그앤드롭 초기화
+function initializeDragDrop() {
+    const dragDropZone = document.getElementById('dragDropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileSelectBtn = document.getElementById('fileSelectBtn');
+    const uploadProgressSection = document.getElementById('uploadProgressSection');
+    const fileUploadList = document.getElementById('fileUploadList');
+
+    if (!dragDropZone || !fileInput || !fileSelectBtn) {
+        console.warn('드래그앤드롭 요소를 찾을 수 없습니다.');
+        return;
+    }
+
+    // 파일 선택 버튼 클릭
+    fileSelectBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // 파일 입력 변경
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(Array.from(e.target.files));
+    });
+
+    // 드래그앤드롭 이벤트
+    dragDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragDropZone.classList.add('drag-active');
+    });
+
+    dragDropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // 드래그 영역을 완전히 벗어났을 때만 클래스 제거
+        if (!dragDropZone.contains(e.relatedTarget)) {
+            dragDropZone.classList.remove('drag-active');
+        }
+    });
+
+    dragDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragDropZone.classList.remove('drag-active');
+        
+        const files = Array.from(e.dataTransfer.files);
+        handleFiles(files);
+    });
+
+    console.log('🎯 드래그앤드롭 초기화 완료');
+}
+
+// Phase 5: 파일 처리 함수
+function handleFiles(files) {
+    console.log('📁 선택된 파일들:', files);
+    
+    // 비디오 파일만 필터링
+    const videoFiles = files.filter(file => {
+        return file.type.startsWith('video/') || 
+               ['mp4', 'webm', 'avi', 'mov', 'mkv'].some(ext => 
+                   file.name.toLowerCase().endsWith(`.${ext}`)
+               );
+    });
+
+    if (videoFiles.length === 0) {
+        showError('비디오 파일만 업로드할 수 있습니다.');
+        return;
+    }
+
+    // 파일 크기 제한 체크 (4GB)
+    const maxSize = 4 * 1024 * 1024 * 1024; // 4GB
+    const oversizedFiles = videoFiles.filter(file => file.size > maxSize);
+    
+    if (oversizedFiles.length > 0) {
+        showError(`파일 크기가 너무 큽니다. 최대 4GB까지 지원됩니다.\n문제 파일: ${oversizedFiles.map(f => f.name).join(', ')}`);
+        return;
+    }
+
+    showInfo(`${videoFiles.length}개의 비디오 파일이 선택되었습니다.`);
+    
+    // 업로드 진행 상황 섹션 표시
+    const uploadProgressSection = document.getElementById('uploadProgressSection');
+    uploadProgressSection.style.display = 'block';
+    
+    // 각 파일에 대해 업로드 시작
+    videoFiles.forEach(file => {
+        uploadFileWithSignedUrl(file);
+    });
+}
+
+// Phase 5: Signed URL을 사용한 파일 업로드
+async function uploadFileWithSignedUrl(file) {
+    const fileId = generateFileId();
+    
+    try {
+        // 업로드 항목 UI 생성
+        createFileUploadItem(fileId, file);
+        updateFileUploadStatus(fileId, 'uploading', '업로드 URL 요청 중...');
+        
+        console.log(`🚀 ${file.name} 업로드 시작`);
+        
+        // 1단계: 백엔드에서 Signed URL 요청
+        const urlResponse = await fetch('/api/generate-upload-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                filename: file.name, 
+                contentType: file.type,
+                size: file.size
+            }),
+        });
+
+        if (!urlResponse.ok) {
+            throw new Error(`URL 생성 실패: ${urlResponse.status}`);
+        }
+
+        const { uploadUrl, newFilename } = await urlResponse.json();
+        updateFileUploadStatus(fileId, 'uploading', '파일 업로드 중...');
+
+        // 2단계: Signed URL을 사용해 직접 업로드
+        const uploadResponse = await uploadFileWithProgress(uploadUrl, file, (progress) => {
+            updateFileUploadProgress(fileId, progress);
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error(`업로드 실패: ${uploadResponse.status}`);
+        }
+
+        updateFileUploadStatus(fileId, 'completed', 'Google Drive로 이동 중...');
+        showSuccess(`${file.name} 업로드 완료!`);
+        
+        console.log(`✅ ${file.name} 업로드 성공`);
+
+    } catch (error) {
+        console.error(`❌ ${file.name} 업로드 오류:`, error);
+        updateFileUploadStatus(fileId, 'error', error.message);
+        showError(`${file.name} 업로드 실패: ${error.message}`);
+    }
+}
+
+// 진행률과 함께 파일 업로드
+function uploadFileWithProgress(url, file, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentage = Math.round((e.loaded / e.total) * 100);
+                onProgress(percentage);
+            }
+        });
+        
+        xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(xhr);
+            } else {
+                reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+            }
+        });
+        
+        xhr.addEventListener('error', () => {
+            reject(new Error('네트워크 오류가 발생했습니다.'));
+        });
+        
+        xhr.open('PUT', url);
+        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.send(file);
+    });
+}
+
+// 파일 업로드 항목 UI 생성
+function createFileUploadItem(fileId, file) {
+    const fileUploadList = document.getElementById('fileUploadList');
+    
+    const fileItem = document.createElement('div');
+    fileItem.className = 'file-upload-item';
+    fileItem.id = `file-${fileId}`;
+    
+    fileItem.innerHTML = `
+        <div class="file-info">
+            <div class="file-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2"/>
+                    <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+            <div class="file-details">
+                <h5>${file.name}</h5>
+                <p>${formatFileSize(file.size)}</p>
+            </div>
+        </div>
+        <div class="upload-status">
+            <span class="status-badge uploading" id="status-${fileId}">준비 중</span>
+            <div class="upload-progress-bar">
+                <div class="upload-progress-fill" id="progress-${fileId}"></div>
+            </div>
+        </div>
+    `;
+    
+    fileUploadList.appendChild(fileItem);
+}
+
+// 파일 업로드 상태 업데이트
+function updateFileUploadStatus(fileId, status, message) {
+    const statusElement = document.getElementById(`status-${fileId}`);
+    if (statusElement) {
+        statusElement.textContent = message;
+        statusElement.className = `status-badge ${status}`;
+    }
+}
+
+// 파일 업로드 진행률 업데이트
+function updateFileUploadProgress(fileId, percentage) {
+    const progressElement = document.getElementById(`progress-${fileId}`);
+    if (progressElement) {
+        progressElement.style.width = `${percentage}%`;
+    }
+    
+    const statusElement = document.getElementById(`status-${fileId}`);
+    if (statusElement && statusElement.classList.contains('uploading')) {
+        statusElement.textContent = `${percentage}%`;
+    }
+}
+
+// 고유한 파일 ID 생성
+function generateFileId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// 기존 initializeApp에 드래그앤드롭 초기화 추가
+const originalInitializeApp = initializeApp;
+async function initializeApp() {
+    await originalInitializeApp();
+    initializeDragDrop();
+}
+
 console.log('Script loaded successfully'); 

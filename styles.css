@@ -389,6 +389,241 @@ body {
     background-size: 48px 48px;
 }
 
+/* Phase 5: 드래그앤드롭 업로드 섹션 */
+.upload-section {
+    margin-bottom: 32px;
+}
+
+.section-divider {
+    display: flex;
+    align-items: center;
+    margin: 32px 0 24px 0;
+    text-align: center;
+}
+
+.section-divider::before,
+.section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+}
+
+.divider-text {
+    padding: 0 24px;
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.drag-drop-zone {
+    position: relative;
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.drag-drop-zone:hover {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+}
+
+.drag-drop-zone.drag-active {
+    border-color: #10b981;
+    background: #f0fdf4;
+    border-style: solid;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.drop-content {
+    text-align: center;
+    padding: 40px 24px;
+    color: #475569;
+}
+
+.drop-content svg {
+    color: #94a3b8;
+    margin-bottom: 20px;
+}
+
+.drop-content h3 {
+    margin: 0 0 12px 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.drop-content p {
+    margin: 0 0 16px 0;
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.drop-content small {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    margin-bottom: 20px;
+}
+
+.file-select-btn {
+    margin-top: 12px;
+    min-width: 140px;
+}
+
+.drop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(16, 185, 129, 0.9);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.drag-drop-zone.drag-active .drop-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.drop-overlay-content {
+    text-align: center;
+    color: white;
+}
+
+.drop-overlay-content svg {
+    color: white;
+    margin-bottom: 16px;
+    opacity: 0.9;
+}
+
+.drop-overlay-content h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* 업로드 진행 상황 */
+.upload-progress-section {
+    margin-top: 24px;
+    padding: 24px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.upload-progress-section h4 {
+    margin: 0 0 20px 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.file-upload-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    margin-bottom: 12px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.file-upload-item:last-child {
+    margin-bottom: 0;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.file-icon {
+    width: 40px;
+    height: 40px;
+    background: #f1f5f9;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+}
+
+.file-details h5 {
+    margin: 0 0 4px 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.file-details p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.upload-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-badge.uploading {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.status-badge.completed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.error {
+    background: #fecaca;
+    color: #dc2626;
+}
+
+.upload-progress-bar {
+    width: 100px;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
 /* Info Section */
 .info-section {
     background: #f0f9ff;
@@ -481,6 +716,47 @@ body {
     .monitor-value {
         font-size: 0.6875rem;
         min-width: 50px;
+    }
+    
+    /* Phase 5: 모바일 드래그앤드롭 */
+    .section-divider {
+        margin: 24px 0 16px 0;
+    }
+    
+    .divider-text {
+        padding: 0 16px;
+        font-size: 0.75rem;
+    }
+    
+    .drag-drop-zone {
+        min-height: 200px;
+    }
+    
+    .drop-content {
+        padding: 24px 16px;
+    }
+    
+    .drop-content h3 {
+        font-size: 1.125rem;
+    }
+    
+    .drop-content p {
+        font-size: 0.875rem;
+    }
+    
+    .upload-progress-section {
+        padding: 16px;
+    }
+    
+    .file-upload-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .upload-status {
+        align-self: stretch;
+        justify-content: space-between;
     }
 }
 

@@ -7,17 +7,20 @@
 - **동시 녹화**: 웹캠과 화면을 동시에 녹화
 - **실시간 미리보기**: 녹화 중인 내용을 실시간으로 확인
 - **자동 업로드**: 녹화 완료 후 Google Drive에 자동 업로드
+- **드래그앤드롭 업로드**: 기존 비디오 파일 직접 업로드
 - **모던 UI**: 직관적이고 아름다운 사용자 인터페이스
 - **반응형 디자인**: 모든 디바이스에서 최적화된 경험
 
 ## 🛠️ 기술 스택
 
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Backend**: Node.js, Express.js, Google Cloud Storage
 - **APIs**: 
   - MediaDevices API (웹캠 접근)
   - Screen Capture API (화면 녹화)
   - MediaRecorder API (미디어 녹화)
   - Google Drive API v3 (파일 업로드)
+  - Google Cloud Storage (Signed URL)
 
 ## 📋 시스템 요구사항
 
@@ -81,10 +84,33 @@
   - 에러 시나리오 대응 검증
   - 사용자 경험 최적화
 
+### 🚀 Phase 5: 드래그앤드롭 + Signed URL 통합 (진행 중)
+- [x] **프론트엔드 드래그앤드롭 UI**
+  - 📁 드래그앤드롭 영역 추가
+  - 🎨 모던 UI/UX 디자인 (glassmorphism 스타일)
+  - 📱 모바일 반응형 최적화
+  - ⚡ 실시간 업로드 진행률 표시
+
+- [x] **백엔드 API 서버**
+  - 🚀 Express.js + Google Cloud Storage
+  - 🔑 Signed URL 생성 API
+  - 🔒 보안 검증 (파일 타입, 크기 제한)
+  - 📊 완전한 에러 처리 및 로깅
+
+- [ ] **Google Cloud 설정**
+  - [ ] Cloud Storage 버킷 생성
+  - [ ] 서비스 계정 설정
+  - [ ] Cloud Functions 배포 (Drive 이동 자동화)
+
+- [ ] **배포 및 통합**
+  - [ ] API 서버 배포 (Railway/Render)
+  - [ ] 프론트엔드-백엔드 연동 테스트
+  - [ ] 전체 워크플로우 검증
+
 ## 🏃‍♂️ 실행 방법
 
 1. **HTTPS 서버 실행**:
-   ```bash
+```bash
    # Python 3를 사용하는 경우
    python -m http.server 8000
    
@@ -104,7 +130,7 @@
 ├── index.html          # 메인 HTML 파일
 ├── styles.css          # CSS 스타일시트
 ├── script.js           # 메인 JavaScript 로직
-├── google-drive.js     # Google Drive API 연동 (예정)
+├── google-drive.js     # Google Drive API 연동
 └── README.md           # 프로젝트 문서
 ```
 

@@ -74,10 +74,53 @@
                 </div>
             </div>
 
+            <!-- Phase 5: 드래그앤드롭 업로드 영역 -->
+            <div class="upload-section">
+                <div class="section-divider">
+                    <span class="divider-text">또는</span>
+                </div>
+                
+                <div class="drag-drop-zone" id="dragDropZone">
+                    <div class="drop-content" id="dropContent">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <h3>동영상 파일 업로드</h3>
+                        <p>여기에 동영상 파일을 드래그하거나 클릭하여 선택하세요</p>
+                        <small>지원 형식: MP4, WebM, AVI, MOV (최대 4GB)</small>
+                        <input type="file" id="fileInput" multiple accept="video/*" style="display: none;">
+                        <button class="btn btn-secondary file-select-btn" id="fileSelectBtn">파일 선택</button>
+                    </div>
+                    
+                    <div class="drop-overlay" id="dropOverlay">
+                        <div class="drop-overlay-content">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <h3>파일을 여기에 놓으세요</h3>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 업로드 진행 상황 -->
+                <div class="upload-progress-section" id="uploadProgressSection" style="display: none;">
+                    <h4>📤 업로드 진행 상황</h4>
+                    <div class="file-upload-list" id="fileUploadList">
+                        <!-- 동적으로 추가될 파일 항목들 -->
+                    </div>
+                </div>
+            </div>
+
             <div class="info-section">
                 <div class="save-location-info">
                     <h3>📁 저장 위치</h3>
-                    <p>녹화 파일은 Google Drive의 다음 위치에 자동 저장됩니다:</p>
+                    <p>녹화/업로드된 파일은 Google Drive의 다음 위치에 자동 저장됩니다:</p>
                     <div class="path-display">
                         <code>📂 _School → 📂 9. Recorder WebAPP → 📂 오늘 날짜</code>
                     </div>
