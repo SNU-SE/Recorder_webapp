@@ -1,0 +1,33 @@
+# Google Drive API 설정 파일 (보안상 제외)
+google-config.js
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 로그 파일
+*.log
+
+# 환경설정 파일
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local 

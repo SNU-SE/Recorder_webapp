@@ -88,10 +88,30 @@
 
 Google Drive 자동 업로드를 사용하려면 추가 설정이 필요합니다:
 
-1. [GOOGLE_DRIVE_SETUP.md](./GOOGLE_DRIVE_SETUP.md) 파일의 상세 가이드 참조
-2. Google Cloud Console에서 API 키와 클라이언트 ID 발급
-3. `google-drive.js` 파일에 발급받은 정보 입력
-4. 설정 완료 후 자동으로 Google Drive에 업로드됩니다
+#### 📦 프로덕션 배포 (GitHub Secrets 사용)
+
+1. GitHub 저장소의 **Settings** → **Secrets and variables** → **Actions**로 이동
+2. 다음 Repository Secrets를 추가:
+   - `GOOGLE_DRIVE_KEY`: Google Cloud Console에서 발급받은 API Key
+   - `GOOGLE_CLIENT_ID`: Google Cloud Console에서 발급받은 Client ID
+3. 코드를 `main` 브랜치에 푸시하면 GitHub Actions가 자동으로 배포
+
+#### 🛠️ 로컬 개발용 설정
+
+1. `google-config.example.js` 파일을 `google-config.js`로 복사
+2. 실제 API 키 값으로 변경:
+   ```javascript
+   window.GOOGLE_DRIVE_CONFIG = {
+       CLIENT_ID: '실제_클라이언트_ID',
+       API_KEY: '실제_API_키',
+       // ... 나머지 설정
+   };
+   ```
+3. `google-config.js`는 자동으로 `.gitignore`에 의해 제외됩니다
+
+#### 🔑 API 키 발급 방법
+
+자세한 Google Cloud Console 설정은 [GOOGLE_DRIVE_SETUP.md](./GOOGLE_DRIVE_SETUP.md) 파일을 참조하세요.
 
 ## 🐛 알려진 이슈
 

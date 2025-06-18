@@ -1,5 +1,5 @@
-// Google Drive API 설정
-const GOOGLE_DRIVE_CONFIG = {
+// Google Drive API 설정 (환경변수에서 로드)
+const GOOGLE_DRIVE_CONFIG = window.GOOGLE_DRIVE_CONFIG || {
     CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID', // Google Cloud Console에서 발급받은 클라이언트 ID
     API_KEY: 'YOUR_GOOGLE_API_KEY',     // Google Cloud Console에서 발급받은 API 키
     DISCOVERY_DOC: 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
