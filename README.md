@@ -41,11 +41,13 @@
 - [x] 에러 처리 및 사용자 알림 시스템
 - [x] 실시간 미리보기 기능
 
-### 📋 Phase 3: Google Drive 연동 (진행 예정)
-- [ ] Google Drive API 설정
-- [ ] OAuth 2.0 인증
-- [ ] 파일 업로드 기능
-- [ ] 업로드 진행률 표시
+### ✅ Phase 3: Google Drive 연동 (완료)
+- [x] Google Drive API 설정 및 초기화
+- [x] OAuth 2.0 인증 시스템
+- [x] 자동 파일 업로드 기능
+- [x] 업로드 진행률 표시 및 에러 처리
+- [x] 업로드 폴더 자동 생성 및 관리
+- [x] 다중 파일 동시 업로드 지원
 
 ### 🧪 Phase 4: 최종 통합 (진행 예정)
 - [ ] 전체 워크플로우 통합
@@ -82,18 +84,21 @@
 
 ## 🔧 설정
 
-### Google Drive API 설정 (Phase 3에서 구현 예정)
+### Google Drive API 설정
 
-1. [Google Cloud Console](https://console.cloud.google.com/)에서 프로젝트 생성
-2. Google Drive API 활성화
-3. OAuth 2.0 클라이언트 ID 생성
-4. 승인된 JavaScript 출처 추가
+Google Drive 자동 업로드를 사용하려면 추가 설정이 필요합니다:
+
+1. [GOOGLE_DRIVE_SETUP.md](./GOOGLE_DRIVE_SETUP.md) 파일의 상세 가이드 참조
+2. Google Cloud Console에서 API 키와 클라이언트 ID 발급
+3. `google-drive.js` 파일에 발급받은 정보 입력
+4. 설정 완료 후 자동으로 Google Drive에 업로드됩니다
 
 ## 🐛 알려진 이슈
 
-- 현재 Phase 1 단계로, 실제 녹화 기능은 시뮬레이션 상태입니다
 - HTTPS 환경에서만 정상 작동합니다
 - 일부 브라우저에서 화면 공유 시 오디오가 포함되지 않을 수 있습니다
+- Google Drive API 설정이 완료되지 않으면 로컬 다운로드만 진행됩니다
+- 대용량 파일 업로드 시 시간이 오래 걸릴 수 있습니다
 
 ## 📄 라이선스
 

@@ -41,6 +41,9 @@ async function initializeApp() {
         startBtn.addEventListener('click', startRecording);
         stopBtn.addEventListener('click', stopRecording);
 
+        // Initialize Google Drive API (non-blocking)
+        initializeGoogleDriveAsync();
+
         // Initial UI state
         updateUI('ready');
         
@@ -48,6 +51,25 @@ async function initializeApp() {
     } catch (error) {
         console.error('앱 초기화 오류:', error);
         showError('앱을 초기화하는 중 오류가 발생했습니다: ' + error.message);
+    }
+}
+
+// Google Drive 비동기 초기화 (에러가 발생해도 앱 실행에 영향 없음)
+async function initializeGoogleDriveAsync() {
+    try {
+        // Google Drive API가 로드될 때까지 잠시 대기
+        setTimeout(async () => {
+            try {
+                if (typeof initializeGoogleDrive === 'function') {
+                    await initializeGoogleDrive();
+                    console.log('Google Drive 연동 준비 완료');
+                }
+            } catch (error) {
+                console.warn('Google Drive 초기화 실패 (선택사항):', error.message);
+            }
+        }, 1000);
+    } catch (error) {
+        console.warn('Google Drive 연동을 사용할 수 없습니다:', error.message);
     }
 }
 
@@ -182,7 +204,8 @@ async function stopRecording() {
         console.log('녹화 중지 완료');
         showSuccess('녹화가 완료되었습니다! 파일이 자동으로 다운로드됩니다.');
         
-        // TODO: Phase 3에서 Google Drive 업로드 로직 구현
+        // Google Drive 업로드 시작
+        await uploadFilesToGoogleDrive();
         
     } catch (error) {
         console.error('녹화 중지 오류:', error);
@@ -516,6 +539,132 @@ function handleMediaError(error) {
     }
     
     return userMessage;
+}
+
+// Google Drive 업로드 처리
+async function uploadFilesToGoogleDrive() {
+    try {
+        // Google Drive API 사용 가능 여부 확인
+        if (typeof uploadMultipleFiles !== 'function') {
+            console.log('Google Drive API를 사용할 수 없습니다. 로컬 다운로드만 진행됩니다.');
+            return;
+        }
+
+        // 업로드할 파일 준비
+        const filesToUpload = [];
+        
+        if (recordedChunks.webcam.length > 0) {
+            const webcamBlob = new Blob(recordedChunks.webcam, { type: 'video/webm' });
+            filesToUpload.push({
+                blob: webcamBlob,
+                filename: `웹캠_녹화_${getCurrentTimestamp()}.webm`
+            });
+        }
+        
+        if (recordedChunks.screen.length > 0) {
+            const screenBlob = new Blob(recordedChunks.screen, { type: 'video/webm' });
+            filesToUpload.push({
+                blob: screenBlob,
+                filename: `전체화면_녹화_${getCurrentTimestamp()}.webm`
+            });
+        }
+
+        if (filesToUpload.length === 0) {
+            console.log('업로드할 파일이 없습니다.');
+            return;
+        }
+
+        // 업로드 시작
+        updateUI('uploading');
+        console.log(`Google Drive에 ${filesToUpload.length}개 파일 업로드 시작`);
+
+        let totalFiles = filesToUpload.length;
+        let completedFiles = 0;
+
+        // 진행률 콜백
+        const onProgress = (fileIndex, percentage, loaded, total, filename) => {
+            const overallProgress = Math.round(((completedFiles + (percentage / 100)) / totalFiles) * 100);
+            updateUploadProgress(overallProgress, `업로드 중: ${filename} (${percentage}%)`);
+            
+            if (percentage === 100) {
+                completedFiles++;
+            }
+        };
+
+        // 업로드 실행
+        const uploadResults = await uploadMultipleFiles(filesToUpload, onProgress);
+        
+        // 업로드 완료 처리
+        console.log('Google Drive 업로드 완료:', uploadResults);
+        
+        const folderLink = await getDriveFolderLink();
+        const successMessage = folderLink 
+            ? `Google Drive 업로드 완료! <a href="${folderLink}" target="_blank">폴더 보기</a>`
+            : 'Google Drive 업로드 완료!';
+            
+        showUploadSuccess(successMessage);
+
+    } catch (error) {
+        console.error('Google Drive 업로드 오류:', error);
+        handleUploadError(error);
+    }
+}
+
+// 업로드 성공 메시지 (HTML 포함)
+function showUploadSuccess(htmlMessage) {
+    const notification = document.createElement('div');
+    notification.className = 'notification success';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#48bb78"/>
+                <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>${htmlMessage}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 10000);
+}
+
+// 업로드 에러 처리
+function handleUploadError(error) {
+    let errorMessage = 'Google Drive 업로드 중 오류가 발생했습니다.';
+    
+    if (error.message.includes('로그인')) {
+        errorMessage = 'Google Drive에 로그인해주세요. 브라우저가 팝업을 차단했을 수 있습니다.';
+    } else if (error.message.includes('권한')) {
+        errorMessage = 'Google Drive 접근 권한이 필요합니다. 권한을 허용해주세요.';
+    } else if (error.message.includes('네트워크')) {
+        errorMessage = '네트워크 연결을 확인하고 다시 시도해주세요.';
+    } else if (error.message.includes('용량')) {
+        errorMessage = 'Google Drive 저장 공간이 부족합니다.';
+    }
+    
+    showError(errorMessage + ' 파일은 로컬에 다운로드되었습니다.');
+    updateUI('ready');
+}
+
+// 수동 Google Drive 업로드 (추후 버튼 추가용)
+async function manualUploadToGoogleDrive() {
+    try {
+        if (!isSignedIn && typeof signInToGoogleDrive === 'function') {
+            await signInToGoogleDrive();
+        }
+        
+        showSuccess('Google Drive 연동이 완료되었습니다!');
+        
+    } catch (error) {
+        console.error('수동 Google Drive 연동 오류:', error);
+        showError('Google Drive 연동에 실패했습니다.');
+    }
 }
 
 console.log('Script loaded successfully'); 
