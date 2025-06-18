@@ -79,6 +79,17 @@
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client"></script>
     
+    <!-- 로컬 테스트용 설정 (있을 경우만 로드) -->
+    <script>
+        // 로컬 설정 파일이 있으면 로드
+        const localScript = document.createElement('script');
+        localScript.src = 'google-config-local.js';
+        localScript.onerror = () => {
+            console.log('로컬 설정 파일 없음 - GitHub Actions 설정 사용');
+        };
+        document.head.appendChild(localScript);
+    </script>
+    
     <!-- 앱 스크립트 -->
     <script src="google-drive.js"></script>
     <script src="script.js"></script>
