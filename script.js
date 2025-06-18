@@ -77,19 +77,30 @@ async function startRecording() {
         webcamPreview.srcObject = webcamStream;
         console.log('웹캠 연결 완료');
         
-        // Step 2: Get screen share stream
-        console.log('화면 공유 접근 중...');
+        // Step 2: Get screen share stream (full screen only)
+        console.log('전체 화면 녹화 접근 중...');
         screenStream = await navigator.mediaDevices.getDisplayMedia({
             video: { 
                 width: { ideal: 1920 },
-                height: { ideal: 1080 }
+                height: { ideal: 1080 },
+                displaySurface: 'monitor',
+                logicalSurface: true,
+                cursor: 'always'
             },
-            audio: true
+            audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                sampleRate: 44100
+            },
+            preferCurrentTab: false,
+            selfBrowserSurface: 'exclude',
+            surfaceSwitching: 'exclude',
+            systemAudio: 'include'
         });
         
         // Connect screen to preview
         screenPreview.srcObject = screenStream;
-        console.log('화면 공유 연결 완료');
+        console.log('전체 화면 녹화 연결 완료');
         
         // Step 3: Setup MediaRecorders
         await setupMediaRecorders();
@@ -110,7 +121,7 @@ async function startRecording() {
         
         // Handle stream end events
         screenStream.getVideoTracks()[0].addEventListener('ended', () => {
-            console.log('화면 공유가 중단되었습니다.');
+            console.log('전체 화면 녹화가 중단되었습니다.');
             stopRecording();
         });
         
@@ -486,7 +497,7 @@ function handleMediaError(error) {
     
     switch (error.name) {
         case 'NotAllowedError':
-            userMessage = '카메라 또는 화면 공유 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.';
+            userMessage = '카메라 또는 화면 녹화 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.';
             break;
         case 'NotFoundError':
             userMessage = '카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.';
