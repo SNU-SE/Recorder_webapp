@@ -478,9 +478,7 @@ async function processRecordedFiles() {
             createDownloadLink(screenBlob, `화면_녹화_${getCurrentTimestamp()}.webm`);
         }
         
-        // Reset chunks
-        recordedChunks.webcam = [];
-        recordedChunks.screen = [];
+        // recordedChunks는 Google Drive 업로드 후에 초기화됨
         
     } catch (error) {
         console.error('파일 처리 오류:', error);
@@ -589,7 +587,19 @@ async function uploadFilesToGoogleDrive() {
         
         if (typeof uploadMultipleFiles !== 'function') {
             console.warn('Google Drive API가 로드되지 않았습니다. 로컬 다운로드만 진행됩니다.');
-            showError('Google Drive API가 로드되지 않았습니다. API 키 설정을 확인해주세요.');
+            console.warn('가능한 원인: API 키 미설정, 네트워크 오류, 스크립트 로드 실패');
+            
+            // API 키 상태 확인
+            if (typeof GOOGLE_DRIVE_CONFIG !== 'undefined') {
+                if (GOOGLE_DRIVE_CONFIG.CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID' || 
+                    GOOGLE_DRIVE_CONFIG.API_KEY === 'YOUR_GOOGLE_API_KEY') {
+                    showError('Google Drive API 키가 설정되지 않았습니다. GitHub Secrets를 확인해주세요.');
+                } else {
+                    showError('Google Drive API 로드에 실패했습니다. 네트워크를 확인하고 페이지를 새로고침해주세요.');
+                }
+            } else {
+                showError('Google Drive 설정을 찾을 수 없습니다. 관리자에게 문의하세요.');
+            }
             return;
         }
         
@@ -612,26 +622,40 @@ async function uploadFilesToGoogleDrive() {
         }
 
         // 업로드할 파일 준비
+        console.log('=== recordedChunks 상태 확인 ===');
+        console.log('recordedChunks:', recordedChunks);
+        console.log('webcam chunks 길이:', recordedChunks.webcam ? recordedChunks.webcam.length : 'undefined');
+        console.log('screen chunks 길이:', recordedChunks.screen ? recordedChunks.screen.length : 'undefined');
+        
         const filesToUpload = [];
         
-        if (recordedChunks.webcam.length > 0) {
+        if (recordedChunks.webcam && recordedChunks.webcam.length > 0) {
             const webcamBlob = new Blob(recordedChunks.webcam, { type: 'video/webm' });
+            console.log('웹캠 파일 준비:', webcamBlob.size, 'bytes');
             filesToUpload.push({
                 blob: webcamBlob,
                 filename: `웹캠_녹화_${getCurrentTimestamp()}.webm`
             });
+        } else {
+            console.warn('웹캠 recordedChunks가 비어있습니다.');
         }
         
-        if (recordedChunks.screen.length > 0) {
+        if (recordedChunks.screen && recordedChunks.screen.length > 0) {
             const screenBlob = new Blob(recordedChunks.screen, { type: 'video/webm' });
+            console.log('화면 파일 준비:', screenBlob.size, 'bytes');
             filesToUpload.push({
                 blob: screenBlob,
                 filename: `전체화면_녹화_${getCurrentTimestamp()}.webm`
             });
+        } else {
+            console.warn('화면 recordedChunks가 비어있습니다.');
         }
 
+        console.log('업로드 준비된 파일 수:', filesToUpload.length);
+        
         if (filesToUpload.length === 0) {
-            console.log('업로드할 파일이 없습니다.');
+            console.error('❌ 업로드할 파일이 없습니다. recordedChunks 상태를 확인하세요.');
+            showError('녹화된 파일을 찾을 수 없습니다. 다시 녹화해주세요.');
             return;
         }
 
@@ -664,10 +688,19 @@ async function uploadFilesToGoogleDrive() {
             : 'Google Drive 업로드 완료!';
             
         showUploadSuccess(successMessage);
+        
+        // 업로드 완료 후 recordedChunks 초기화
+        recordedChunks.webcam = [];
+        recordedChunks.screen = [];
+        console.log('recordedChunks 초기화 완료');
 
     } catch (error) {
         console.error('Google Drive 업로드 오류:', error);
         handleUploadError(error);
+        
+        // 오류 발생 시에도 초기화 (메모리 절약)
+        recordedChunks.webcam = [];
+        recordedChunks.screen = [];
     }
 }
 

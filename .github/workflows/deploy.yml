@@ -35,13 +35,17 @@ jobs:
           GOOGLE_DRIVE_KEY: ${{ secrets.GOOGLE_DRIVE_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
-          # Replace API keys in google-drive.js file
-          sed -i "s/YOUR_GOOGLE_CLIENT_ID/${{ secrets.GOOGLE_CLIENT_ID }}/g" google-drive.js
-          sed -i "s/YOUR_GOOGLE_API_KEY/${{ secrets.GOOGLE_DRIVE_KEY }}/g" google-drive.js
+          # Replace API keys in google-drive.js file (use different delimiter to avoid issues)
+          sed -i "s|YOUR_GOOGLE_CLIENT_ID|${{ secrets.GOOGLE_CLIENT_ID }}|g" google-drive.js
+          sed -i "s|YOUR_GOOGLE_API_KEY|${{ secrets.GOOGLE_DRIVE_KEY }}|g" google-drive.js
           
           # Verify the replacement
-          echo "API keys have been replaced in google-drive.js"
-          grep -n "CLIENT_ID\|API_KEY" google-drive.js | head -5
+          echo "=== API keys replacement verification ==="
+          echo "CLIENT_ID line:"
+          grep -n "CLIENT_ID:" google-drive.js | head -2
+          echo "API_KEY line:"
+          grep -n "API_KEY:" google-drive.js | head -2
+          echo "========================================="
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
