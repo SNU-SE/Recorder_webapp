@@ -241,6 +241,87 @@ body {
     font-size: 0.875rem;
 }
 
+/* Notification System */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 500px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(20px);
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification.error {
+    background: rgba(254, 202, 202, 0.95);
+    border: 1px solid #feb2b2;
+}
+
+.notification.success {
+    background: rgba(198, 246, 213, 0.95);
+    border: 1px solid #9ae6b4;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+.notification-content svg {
+    flex-shrink: 0;
+}
+
+.notification-content span {
+    flex: 1;
+    font-weight: 500;
+    color: #2d3748;
+    line-height: 1.4;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    font-weight: bold;
+    color: #718096;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.notification-close:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #2d3748;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Preview video enhancements */
+.preview-video:not([src]) {
+    background: #1a202c url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23a0aec0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><circle cx="8" cy="8.5" r="1.5"/><path d="m8.5 12.5 3.5-3.5 2.5 2.5L19 7"/></svg>') center center no-repeat;
+    background-size: 48px 48px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {

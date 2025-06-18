@@ -51,16 +51,52 @@ async function initializeApp() {
     }
 }
 
-// Start recording function (placeholder for Phase 2)
+// Start recording function
 async function startRecording() {
     try {
         updateUI('preparing');
-        
-        // TODO: Phase 2에서 실제 녹화 로직 구현
         console.log('녹화 시작 준비 중...');
         
-        // Simulate preparation time
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Check HTTPS requirement
+        if (!checkHTTPS()) {
+            throw new Error('HTTPS 환경에서만 녹화가 가능합니다.');
+        }
+        
+        // Step 1: Get webcam stream
+        console.log('웹캠 접근 중...');
+        webcamStream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                facingMode: 'user'
+            },
+            audio: true
+        });
+        
+        // Connect webcam to preview
+        webcamPreview.srcObject = webcamStream;
+        console.log('웹캠 연결 완료');
+        
+        // Step 2: Get screen share stream
+        console.log('화면 공유 접근 중...');
+        screenStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { 
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            },
+            audio: true
+        });
+        
+        // Connect screen to preview
+        screenPreview.srcObject = screenStream;
+        console.log('화면 공유 연결 완료');
+        
+        // Step 3: Setup MediaRecorders
+        await setupMediaRecorders();
+        
+        // Step 4: Start recording
+        webcamRecorder.start(1000); // Collect data every second
+        screenRecorder.start(1000);
         
         // Start timer
         recordingStartTime = Date.now();
@@ -70,40 +106,78 @@ async function startRecording() {
         updateUI('recording');
         isRecording = true;
         
-        console.log('녹화 시작됨 (시뮬레이션)');
+        console.log('녹화 시작됨');
+        
+        // Handle stream end events
+        screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+            console.log('화면 공유가 중단되었습니다.');
+            stopRecording();
+        });
         
     } catch (error) {
         console.error('녹화 시작 오류:', error);
-        showError('녹화를 시작하는 중 오류가 발생했습니다: ' + error.message);
+        const userMessage = handleMediaError(error);
+        showError(userMessage);
+        await cleanupStreams();
         updateUI('ready');
     }
 }
 
-// Stop recording function (placeholder for Phase 2)
+// Stop recording function
 async function stopRecording() {
     try {
         updateUI('stopping');
-        
-        // TODO: Phase 2에서 실제 녹화 중지 로직 구현
         console.log('녹화 중지 중...');
+        
+        // Stop recording
+        if (webcamRecorder && webcamRecorder.state === 'recording') {
+            webcamRecorder.stop();
+        }
+        if (screenRecorder && screenRecorder.state === 'recording') {
+            screenRecorder.stop();
+        }
         
         // Stop timer
         stopTimer();
         
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for recording to finish
+        await Promise.all([
+            new Promise(resolve => {
+                if (webcamRecorder && webcamRecorder.state !== 'inactive') {
+                    webcamRecorder.addEventListener('stop', resolve, { once: true });
+                } else {
+                    resolve();
+                }
+            }),
+            new Promise(resolve => {
+                if (screenRecorder && screenRecorder.state !== 'inactive') {
+                    screenRecorder.addEventListener('stop', resolve, { once: true });
+                } else {
+                    resolve();
+                }
+            })
+        ]);
+        
+        // Process recorded data
+        await processRecordedFiles();
+        
+        // Cleanup streams
+        await cleanupStreams();
         
         // Update UI
         updateUI('ready');
         isRecording = false;
         
-        console.log('녹화 중지됨 (시뮬레이션)');
+        console.log('녹화 중지 완료');
+        showSuccess('녹화가 완료되었습니다! 파일이 자동으로 다운로드됩니다.');
         
         // TODO: Phase 3에서 Google Drive 업로드 로직 구현
         
     } catch (error) {
         console.error('녹화 중지 오류:', error);
         showError('녹화를 중지하는 중 오류가 발생했습니다: ' + error.message);
+        await cleanupStreams();
+        updateUI('ready');
     }
 }
 
@@ -176,9 +250,55 @@ function stopTimer() {
     recordingStartTime = null;
 }
 
-// Show error message
+// Show error message with modern notification
 function showError(message) {
-    alert(message); // TODO: 더 나은 에러 표시 방법으로 개선
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'notification error';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#f56565"/>
+                <path d="M15 9l-6 6M9 9l6 6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    // Add to DOM
+    document.body.appendChild(notification);
+    
+    // Auto remove after 10 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 10000);
+}
+
+// Show success message
+function showSuccess(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification success';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#48bb78"/>
+                <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
 }
 
 // Update upload progress (for Phase 3)
@@ -203,6 +323,188 @@ function checkHTTPS() {
         return false;
     }
     return true;
+}
+
+// Setup MediaRecorder instances
+async function setupMediaRecorders() {
+    try {
+        // Setup webcam recorder
+        const webcamOptions = {
+            mimeType: 'video/webm;codecs=vp9,opus'
+        };
+        
+        // Fallback to vp8 if vp9 is not supported
+        if (!MediaRecorder.isTypeSupported(webcamOptions.mimeType)) {
+            webcamOptions.mimeType = 'video/webm;codecs=vp8,opus';
+        }
+        
+        webcamRecorder = new MediaRecorder(webcamStream, webcamOptions);
+        recordedChunks.webcam = [];
+        
+        webcamRecorder.addEventListener('dataavailable', (event) => {
+            if (event.data.size > 0) {
+                recordedChunks.webcam.push(event.data);
+            }
+        });
+        
+        webcamRecorder.addEventListener('stop', () => {
+            console.log('웹캠 녹화 중지됨');
+        });
+        
+        // Setup screen recorder
+        const screenOptions = {
+            mimeType: 'video/webm;codecs=vp9,opus'
+        };
+        
+        if (!MediaRecorder.isTypeSupported(screenOptions.mimeType)) {
+            screenOptions.mimeType = 'video/webm;codecs=vp8,opus';
+        }
+        
+        screenRecorder = new MediaRecorder(screenStream, screenOptions);
+        recordedChunks.screen = [];
+        
+        screenRecorder.addEventListener('dataavailable', (event) => {
+            if (event.data.size > 0) {
+                recordedChunks.screen.push(event.data);
+            }
+        });
+        
+        screenRecorder.addEventListener('stop', () => {
+            console.log('화면 녹화 중지됨');
+        });
+        
+        console.log('MediaRecorder 설정 완료');
+        
+    } catch (error) {
+        console.error('MediaRecorder 설정 오류:', error);
+        throw error;
+    }
+}
+
+// Process recorded files
+async function processRecordedFiles() {
+    try {
+        console.log('녹화 파일 처리 중...');
+        
+        // Create webcam blob
+        if (recordedChunks.webcam.length > 0) {
+            const webcamBlob = new Blob(recordedChunks.webcam, { type: 'video/webm' });
+            const webcamUrl = URL.createObjectURL(webcamBlob);
+            
+            console.log(`웹캠 파일 생성: ${formatFileSize(webcamBlob.size)}`);
+            
+            // Create download link for webcam
+            createDownloadLink(webcamBlob, `웹캠_녹화_${getCurrentTimestamp()}.webm`);
+        }
+        
+        // Create screen blob
+        if (recordedChunks.screen.length > 0) {
+            const screenBlob = new Blob(recordedChunks.screen, { type: 'video/webm' });
+            const screenUrl = URL.createObjectURL(screenBlob);
+            
+            console.log(`화면 파일 생성: ${formatFileSize(screenBlob.size)}`);
+            
+            // Create download link for screen
+            createDownloadLink(screenBlob, `화면_녹화_${getCurrentTimestamp()}.webm`);
+        }
+        
+        // Reset chunks
+        recordedChunks.webcam = [];
+        recordedChunks.screen = [];
+        
+    } catch (error) {
+        console.error('파일 처리 오류:', error);
+        throw error;
+    }
+}
+
+// Create download link for recorded files
+function createDownloadLink(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    // Clean up the URL after a delay
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, 1000);
+}
+
+// Cleanup media streams
+async function cleanupStreams() {
+    try {
+        // Stop webcam stream
+        if (webcamStream) {
+            webcamStream.getTracks().forEach(track => {
+                track.stop();
+            });
+            webcamStream = null;
+            webcamPreview.srcObject = null;
+        }
+        
+        // Stop screen stream
+        if (screenStream) {
+            screenStream.getTracks().forEach(track => {
+                track.stop();
+            });
+            screenStream = null;
+            screenPreview.srcObject = null;
+        }
+        
+        // Reset recorders
+        webcamRecorder = null;
+        screenRecorder = null;
+        
+        console.log('스트림 정리 완료');
+        
+    } catch (error) {
+        console.error('스트림 정리 오류:', error);
+    }
+}
+
+// Get current timestamp for file naming
+function getCurrentTimestamp() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+    
+    return `${year}${month}${day}_${hours}${minutes}${seconds}`;
+}
+
+// Enhanced error handling for media access
+function handleMediaError(error) {
+    let userMessage = '알 수 없는 오류가 발생했습니다.';
+    
+    switch (error.name) {
+        case 'NotAllowedError':
+            userMessage = '카메라 또는 화면 공유 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.';
+            break;
+        case 'NotFoundError':
+            userMessage = '카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.';
+            break;
+        case 'NotSupportedError':
+            userMessage = '이 브라우저는 미디어 녹화를 지원하지 않습니다.';
+            break;
+        case 'AbortError':
+            userMessage = '미디어 접근이 중단되었습니다.';
+            break;
+        case 'NotReadableError':
+            userMessage = '카메라가 다른 애플리케이션에서 사용 중입니다.';
+            break;
+        default:
+            userMessage = `미디어 접근 오류: ${error.message}`;
+    }
+    
+    return userMessage;
 }
 
 console.log('Script loaded successfully'); 

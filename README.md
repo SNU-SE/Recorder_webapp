@@ -33,11 +33,13 @@
 - [x] JavaScript 기본 구조
 - [x] 반응형 디자인
 
-### 🔄 Phase 2: 미디어 녹화 (진행 예정)
-- [ ] 웹캠 접근 및 녹화
-- [ ] 화면 공유 및 녹화
-- [ ] 동시 녹화 관리
-- [ ] 미디어 스트림 처리
+### ✅ Phase 2: 미디어 녹화 (완료)
+- [x] 웹캠 접근 및 녹화 (getUserMedia API)
+- [x] 화면 공유 및 녹화 (getDisplayMedia API)
+- [x] 동시 녹화 관리 (MediaRecorder API)
+- [x] 미디어 스트림 처리 및 파일 다운로드
+- [x] 에러 처리 및 사용자 알림 시스템
+- [x] 실시간 미리보기 기능
 
 ### 📋 Phase 3: Google Drive 연동 (진행 예정)
 - [ ] Google Drive API 설정
